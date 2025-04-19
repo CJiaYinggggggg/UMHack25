@@ -37,7 +37,8 @@
       <h3>Data Collection and Preparation</h3>
       <ul>
         <li><strong>On-chain cryptocurrency data:</strong> blockchain metrics like transactions, volume, etc.</li>
-        <li><strong>Macroeconomic indicators:</strong> DFF (Federal Funds Effective Rate), CPIAUCSL (CPI for All Urban Consumers), GDPC1 (Real GDP), UNRATE (Unemployment Rate), DTWEXB (U.S. Dollar Index), M2SL (Monetary Policy).</li>
+        <li><strong>Macroeconomic indicators:</strong> DFF (Federal Funds Effective Rate), CPIAUCSL (CPI for All Urban Consumers), GDPC1 (Real GDP), UNRATE (Unemployment Rate), DTWEXB (U.S. Dollar Index), M2SL (Monetary Policy), S&P 500.</li>
+        <li><strong>Source: </strong> Fred <a href="https://fred.stlouisfed.org">(https://fred.stlouisfed.org)</a> </li>
       </ul>
       
       <h3>Feature Engineering</h3>
@@ -78,24 +79,73 @@
       <p>Gradient boosting framework using decision trees, with:</p>
       <ul>
         <li><strong>Boosting:</strong> Sequentially add weak learners.</li>
-        <li><strong>Regularization:</strong> L1 & L2 penalties.</li>
         <li><strong>Parallelization:</strong> Efficient on large datasets.</li>
       </ul>
 
       <h3>Workflow Steps</h3>
       <ol>
         <li>Load regime-specific CSVs (regimes_0.csv, regimes_1.csv, ...).</li>
-        <li>Drop non-important columns (per HMM).</li>
         <li>Create rolling windows (<code>create_window_sequences</code>).</li>
+        <pre><code>def create_window_sequences(self, df, top_features):
+          data = df[top_features].values
+          targets_data = df['price_change'].values
+  
+          total_samples = len(data) - self.window_size
+          # total_samples = len(data) - 2 * self.window_size
+          if total_samples <= 0:
+              raise ValueError("Not enough data for the given window size.")
+  
+          # Use NumPy strides to efficiently build rolling windows
+          shape = (total_samples, self.window_size, data.shape[1])
+          strides = (data.strides[0], data.strides[0], data.strides[1])
+          windows = np.lib.stride_tricks.as_strided(data, shape=shape, strides=strides)
+  
+          sequences = windows.reshape(total_samples, -1)
+          # targets = targets_data[self.window_size * 2:]
+          targets = targets_data[self.window_size:]
+  
+          return sequences, targets</code></pre>
         <li>Scale features (<code>prepare_data</code>).</li>
         <li>Train-test split.</li>
         <li>Model training.</li>
         <li>Time-series CV & RandomizedSearchCV (<code>optimize_model</code>).</li>
+        <pre><code>def optimize_model(self, X_train, y_train, model_type='xgb', n_iter=20, cv=5):
+          def time_series_split(X, n_splits):
+              n_samples = len(X)
+              k_fold_size = n_samples // n_splits
+              indices = np.arange(n_samples)
+              for i in range(n_splits):
+                  test_start = k_fold_size * i
+                  test_end = k_fold_size * (i + 1) if i < n_splits - 1 else n_samples
+                  train_indices = indices[:test_start]
+                  test_indices = indices[test_start:test_end]
+                  yield train_indices, test_indices
+  
+          param_grid = self.param_distributions[model_type]
+          base_model = xgb.XGBRegressor(objective='reg:squarederror', random_state=42, tree_method='hist')
+          ts_cv = list(time_series_split(X_train, n_splits=cv))
+  
+          random_search = RandomizedSearchCV(
+              estimator=base_model,
+              param_distributions=param_grid,
+              n_iter=n_iter,
+              cv=ts_cv,
+              scoring='neg_mean_squared_error',
+              random_state=42,
+              n_jobs=-1,
+              verbose=2
+          )
+  
+          random_search.fit(X_train, y_train)
+          self.best_params = random_search.best_params_
+          self.best_score = random_search.best_score_
+          self.models[model_type] = random_search.best_estimator_
+          print("\nBest parameters found:")
+          print(self.best_params)
+          print(f"Best score: {self.best_score:.4f}")
+          return self.models[model_type]</code></pre>
       </ol>
 
-      <pre><code>def create_window_sequences(self, df, top_features):
-  # ...
-</code></pre>
     </section>
 
     <!-- LSTM Section -->
