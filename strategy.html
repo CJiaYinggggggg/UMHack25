@@ -1,0 +1,36 @@
+<!-- strategy.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Our Trading Strategy</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Our Trading Strategy</h1>
+    <nav><a href="index.html">&#8592; Home</a></nav>
+  </header>
+  <section>
+    <h2>Overview</h2>
+    <p>We combine regime detection (HMM) with sequential forecasting (LSTM) to generate entry and exit signals:</p>
+    <ol>
+      <li><strong>Regime Filter:</strong> Use HMM to identify Bull/Bear periods.</li>
+      <li><strong>Signal Generator:</strong> Train LSTM on rolling windows of returns during Bull states.</li>
+      <li><strong>Execution:</strong> Only take long trades if HMM indicates Bull; otherwise stay flat or hedge.</li>
+      <li><strong>Risk Management:</strong> Fixed stop-loss at 2% and take-profit at 5% per trade.</li>
+    </ol>
+  </section>
+  <section>
+    <h2>Walkthrough</h2>
+    <p>1. Load price data and fit HMM on returns.<br>
+2. Label each time-step with a regime.<br>
+3. Train LSTM only on data labeled Bull.<br>
+4. During live trading, predict next-step price with LSTM; if predicted return &gt; threshold, go long.</p>
+  </section>
+  <footer>
+    <p>&copy; 2025 QuantDoc</p>
+  </footer>
+</body>
+</html>
