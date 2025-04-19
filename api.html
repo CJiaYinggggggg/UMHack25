@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classes overview - CppBacktester Documentation</title>
+    <link rel="stylesheet" href="styles1.css">
+</head>
+<body>
+    <header>
+        <h1>CppBacktester</h1>
+        <p>Classes Overview</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="installation.html">Installation</a></li>
+            <li><a href="usage.html">Usage Guide</a></li>
+            <li><a href="api.html" class="active">API Reference</a></li>
+            <li><a href="examples.html">Examples</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="container">
+            <h2>Overview</h2>
+            <p>
+                This section provides detailed documentation for the classes of CppBacktester.
+            </p>
+
+            <h3>BacktestEngine Class</h3>
+            <p>The main class for running backtests.</p>
+            <pre><code>class BacktestEngine {
+public:
+    // Constructor takes a configuration object
+    explicit BacktestEngine(const Config& cfg);
+
+    // --- Setup ---
+    bool loadData();                              // Load data based on config settings
+    void setStrategy(std::unique_ptr<Strategy> strat); // Set the strategy to use
+
+    // --- Execution ---
+    void run();                                   // Run the backtest
+};</code></pre>
+
+            <h3>Strategy Base Class</h3>
+            <p>Base class for implementing trading strategies.</p>
+            <pre><code>class Strategy {
+protected:
+    Broker* broker;                 // Non-owning pointer to the broker instance
+    const std::vector<Bar>* data;   // Non-owning pointer to the historical data
+    std::string dataName;           // Name of the data series (e.g., "USDJPY")
+    Config* config;                 // Non-owning pointer to configuration settings
+
+public:
+    virtual std::string getName() const;
+    Strategy();                     // Default constructor
+    virtual ~Strategy() = default;  // Virtual destructor
+
+    // --- Setup Methods (called by Engine) ---
+    virtual void setBroker(Broker* b);
+    virtual void setData(const std::vector<Bar>* d, const std::string& name);
+    virtual void setConfig(Config* cfg);
+
+    // --- Core Strategy Lifecycle Methods (to be overridden) ---
+    virtual void init() = 0;                                // Called before backtest
+    virtual void next(const Bar& currentBar, size_t currentBarIndex, const double currentPrice) = 0;
+    virtual void stop() = 0;                                // Called after backtest
+    virtual void notifyOrder(const Order& order) = 0;       // Called when order status changes
+};</code></pre>
+
+            <h3>Bar Structure</h3>
+            <p>Represents a single price bar with market data.</p>
+            <pre><code>struct Bar {
+    std::chrono::system_clock::time_point timestamp{};  // Timestamp for the bar
+    std::vector<std::string> columnNames;               // Names of the data columns
+    std::vector<double> columns;                        // Values for each column
+};</code></pre>
+
+            <h3>Order Structure</h3>
+            <p>Represents a trading order.</p>
+            <pre><code>// Order type enumeration
+enum class OrderType {
+    BUY,
+    SELL
+};
+
+// Order status enumeration
+enum class OrderStatus {
+    CREATED,    // Initial state before broker processing
+    SUBMITTED,  // Handed to broker simulation
+    ACCEPTED,   // Basic checks passed (e.g., positive size)
+    FILLED,     // Successfully executed
+    CLOSED,     // Order is closed
+    CANCELLED,  // Order cancelled before filling
+    REJECTED,   // Broker rejected (e.g., insufficient funds/margin)
+    MARGIN      // Rejected specifically due to margin
+};
+
+// Order reason enumeration
+enum class OrderReason {
+    ENTRY_SIGNAL,
+    EXIT_SIGNAL,
+    STOP_LOSS,
+    TAKE_PROFIT,
+    BANKRUPTCY_PROTECTION,
+    MANUAL_CLOSE
+};
+
+struct Order {
+    int id = -1;                                     // Unique ID assigned by Broker
+    OrderType type = OrderType::BUY;                 // Order type (BUY/SELL)
+    OrderStatus status = OrderStatus::CREATED;       // Current status
+    OrderReason reason = OrderReason::ENTRY_SIGNAL;  // Reason for the order
+    std::string symbol = "";                         // Trading symbol (e.g., "USDJPY")
+    double requestedSize = 0.0;                      // Size requested
+    double filledSize = 0.0;                         // Size actually filled
+    double requestedPrice = 0.0;                     // Requested price
+    double filledPrice = 0.0;                        // Actual fill price
+    double commission = 0.0;                         // Commission charged
+    double takeProfit = 0.0;                         // Take profit level
+    double stopLoss = 0.0;                           // Stop loss level
+    std::chrono::system_clock::time_point creationTime{};
+    std::chrono::system_clock::time_point executionTime{};
+    
+    // Helper to check if order is in a final state
+    bool isClosed() const;
+};</code></pre>
+
+            <h3>Position Structure</h3>
+            <p>Represents an open trading position.</p>
+            <pre><code>// Note: This class definition is inferred from usage, actual implementation may vary
+class Position {
+public:
+    Position();
+    Position(const std::string& sym, double sz, double price);
+    
+    // Data members
+    std::string symbol;     // Trading symbol
+    double size;            // Position size (positive for long, negative for short)
+    double entryPrice;      // Average entry price
+    double stopLoss;        // Stop loss level (0 if not set)
+    double takeProfit;      // Take profit level (0 if not set)
+    
+    // Member functions
+    double getUnrealizedPnL(double currentPrice) const;
+    void update(double additionalSize, double price);
+};</code></pre>
+
+            <h3>Broker Class</h3>
+            <p>Manages orders and positions during the backtest.</p>
+            <pre><code>class Broker {
+public:
+    // Constructors
+    Broker();
+    Broker(double initialCash, double lev, double commRate);
+    ~Broker() = default;
+
+    // Set the strategy instance (called by engine)
+    void setStrategy(Strategy* strat);
+
+    // --- Account Info ---
+    double getStartingCash() const;
+    double getCash() const;
+    double getValue(const std::map<std::string, double>& currentPrices);
+    double getValue(const double currentPrices);
+
+    // --- Order Management ---
+    int submitOrder(Order order);
+    void processOrders(const Bar& currentBar);
+
+    // --- Position Info ---
+    const Position* getPosition(const std::string& symbol) const;
+    const std::map<std::string, Position>& getAllPositions() const;
+
+    // --- History ---
+    const std::vector<Order>& getOrderHistory() const;
+};</code></pre>
+
+            <h3>Config Class</h3>
+            <p>Handles configuration loading and access.</p>
+            <pre><code>// Note: Implementation inferred from usage in code
+class Config {
+public:
+    Config();
+    
+    // Load config from file
+    bool loadFromFile(const std::string& filename);
+    
+    // Access config values
+    template <typename T>
+    T get(const std::string& path, const T& defaultValue) const;
+    
+    // Get nested config values
+    template <typename T>
+    T getNested(const std::string& path, const T& defaultValue) const;
+    
+    // Set config values
+    template <typename T>
+    void set(const std::string& path, const T& value);
+};</code></pre>
+
+            <h3>ModelInterface Class</h3>
+            <p>Base interface for ML model integration.</p>
+            <pre><code>// Note: This is a work in progress feature
+class ModelInterface {
+public:
+    virtual ~ModelInterface() = default;
+    
+    // Load a model from the specified path
+    virtual bool LoadModel(const std::string& modelPath) = 0;
+    
+    // Run inference on input data
+    virtual std::vector<float> Predict(const std::vector<float>& inputData, 
+                                     const std::vector<int64_t>& inputShape) = 0;
+    
+    // Print information about the loaded model
+    virtual void PrintModelInfo() = 0;
+};</code></pre>
+
+            <h3>OnnxModelInterface Class</h3>
+            <p>Implementation of ModelInterface using ONNX Runtime.</p>
+            <pre><code>// Note: Work in progress based on the header file
+class OnnxModelInterface : public ModelInterface {
+public:
+    OnnxModelInterface();
+    ~OnnxModelInterface() override;
+    
+    bool LoadModel(const std::string& modelPath);
+    std::vector<float> Predict(const std::vector<float>& inputData, 
+                             const std::vector<int64_t>& inputShape) override;
+    void PrintModelInfo() override;
+};</code></pre>
+
+            <h3>TradingMetrics Class</h3>
+            <p>Calculates and provides access to trading performance metrics.</p>
+            <pre><code>// Note: Implementation inferred from usage
+class TradingMetrics {
+public:
+    TradingMetrics();
+    
+    // Add a new portfolio value point
+    void addValue(double portfolioValue, const std::string& timestamp);
+    
+    // Add a trade from order information
+    void addTrade(const Order& order);
+    
+    // Calculate and return metrics
+    double getTotalReturn() const;
+    double getSharpeRatio() const;
+    double getMaxDrawdown() const;
+    int getTradeCount() const;
+    double getWinRate() const;
+    double getProfitFactor() const;
+};</code></pre>
+        </section>
+
+        <section class="container">
+            <h2>Python API Reference</h2>
+            <p>
+                This section provides detailed documentation for the Python bindings of CppBacktester.
+            </p>
+
+            <h3>Module Overview</h3>
+            <p>The Python module <code>cppbacktester_py</code> exposes the following classes and functions:</p>
+
+            <h3>Global Functions</h3>
+            <pre><code># Run the main function (equivalent to the C++ executable)
+cppbacktester_py.main()
+
+# Load a Python pickle model from a file
+model = cppbacktester_py.load_model(path)</code></pre>
+
+            <h3>Bar Class</h3>
+            <p>Represents a single price bar with market data.</p>
+            <pre><code>class cppbacktester_py.Bar:
+    """Represents a time period's market data bar."""
+    
+    # Properties
+    timestamp   # datetime object representing the bar's time
+    columns     # List of numeric values for the bar's data columns</code></pre>
+
+            <h3>Config Class</h3>
+            <p>Handles configuration loading and access.</p>
+            <pre><code>class cppbacktester_py.Config:
+    """Configuration class for the backtester."""
+    
+    def load_from_file(filename):
+        """Load configuration from a JSON file.
+        
+        Args:
+            filename (str): Path to the JSON config file
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """</code></pre>
+
+            <h3>DataLoader Class</h3>
+            <p>Handles loading market data from various sources.</p>
+            <pre><code>class cppbacktester_py.DataLoader:
+    """Load market data for backtesting."""
+    
+    def __init__(config):
+        """Initialize the DataLoader.
+        
+        Args:
+            config (Config): Configuration object
+        """
+    
+    def load_data(use_partial=False, partial_percent=100.0):
+        """Load data as specified in the config.
+        
+        Args:
+            use_partial (bool): Whether to use partial data loading
+            partial_percent (float): Percentage of data to load if partial
+            
+        Returns:
+            list: List of Bar objects
+        """</code></pre>
+
+            <h3>Future Python Functionality</h3>
+            <p>The following Python functionality is currently in development:</p>
+            <ul>
+                <li>Complete Strategy class bindings for custom Python strategies</li>
+                <li>Support for ONNX and HMM models in Python</li>
+                <li>Direct pandas DataFrame integration</li>
+                <li>Visualization tools for backtesting results</li>
+                <li>Comprehensive reporting features</li>
+            </ul>
+            
+            <p>The Python API is actively being expanded. Check the repository for the latest updates and additional functionality.</p>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 CppBacktester Project. All rights reserved.</p>
+    </footer>
+</body>
+</html>

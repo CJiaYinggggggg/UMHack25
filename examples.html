@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Program Flow - CppBacktester Documentation</title>
+    <link rel="stylesheet" href="styles1.css">
+</head>
+<body>
+    <header>
+        <h1>CppBacktester</h1>
+        <p>Program Execution Flow</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="installation.html">Installation</a></li>
+            <li><a href="usage.html">Usage Guide</a></li>
+            <li><a href="api.html">API Reference</a></li>
+            <li><a href="examples.html" class="active">Program Flow</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="container">
+            <h2>Program Execution Flow</h2>
+            <p>
+                This document provides a detailed walkthrough of the execution flow in CppBacktester,
+                from initialization to final results. Understanding this flow will help you better
+                utilize the framework and implement custom strategies.
+            </p>
+        </section>
+
+        <section class="container">
+            <h2>High-Level Overview</h2>
+            <p>
+                Here's the high-level flow of a typical backtesting session:
+            </p>
+            <ol>
+                <li>Load configuration from config.json</li>
+                <li>Create BacktestEngine with loaded config</li>
+                <li>Load market data via DataLoader</li>
+                <li>Create and initialize a Strategy</li>
+                <li>Run the backtest loop bar by bar</li>
+                <li>Calculate and output performance metrics</li>
+            </ol>
+            <div class="diagram">
+                <img src="assets/flow-diagram.png" alt="Flow Diagram" onerror="this.style.display='none'">
+                <p><em>Note: Flow diagram image not available</em></p>
+            </div>
+        </section>
+
+        <section class="container">
+            <h2>1. Configuration Loading</h2>
+            <p>
+                The backtester begins by loading configuration settings from config.json:
+            </p>
+            <pre><code>// In main.cpp
+Config config;
+std::string configFilename = "config.json"; 
+if (!config.loadFromFile(configFilename)) {
+    Utils::logMessage("Main Warning: Proceeding with internal default configuration.");
+} else {
+    std::cout << "Configuration loaded successfully from " << configFilename << std::endl;
+}</code></pre>
+
+            <p>
+                During this phase:
+            </p>
+            <ul>
+                <li>The Config class parses the JSON file using the nlohmann JSON library</li>
+                <li>Default values are applied for any missing configuration parameters</li>
+                <li>Configuration validation is performed</li>
+                <li>The loaded configuration is stored for later use</li>
+            </ul>
+        </section>
+
+        <section class="container">
+            <h2>2. BacktestEngine Initialization</h2>
+            <p>
+                The BacktestEngine is created with the loaded configuration:
+            </p>
+            <pre><code>// In main.cpp
+std::unique_ptr<BacktestEngine> engine = std::make_unique<BacktestEngine>(config);</code></pre>
+
+            <p>
+                During engine initialization:
+            </p>
+            <ul>
+                <li>The engine stores a copy of the configuration</li>
+                <li>A Broker instance is created with parameters from the configuration</li>
+                <li>Initial variables and data structures are set up</li>
+            </ul>
+        </section>
+
+        <section class="container">
+            <h2>3. Data Loading</h2>
+            <p>
+                Next, the engine loads market data:
+            </p>
+            <pre><code>// In main.cpp
+if (!engine->loadData()) {
+    Utils::logMessage("Main Error: Failed to load data. Exiting.");
+    return 1;
+}</code></pre>
+
+            <p>
+                The data loading process:
+            </p>
+            <ol>
+                <li>BacktestEngine creates a DataLoader instance to manage loading process</li>
+                <li>DataLoader checks configuration to determine data source:
+                    <ul>
+                        <li>If SourceType = "CSV", a CSVDataSource is created</li>
+                        <li>If SourceType = "API", an APIDataSource is created</li>
+                    </ul>
+                </li>
+                <li>For CSV data:
+                    <ol>
+                        <li>CSVDataSource opens the CSV file specified in INPUT_CSV_PATH</li>
+                        <li>CSVParserStep parses each line according to CSV_Columns configuration</li>
+                        <li>Each line is converted into a Bar object</li>
+                        <li>Column mapping is performed based on configuration</li>
+                    </ol>
+                </li>
+                <li>For API data:
+                    <ol>
+                        <li>APIDataSource connects to the specified API endpoint</li>
+                        <li>API requests are made to fetch historical data</li>
+                        <li>Response data is parsed and converted to Bar objects</li>
+                    </ol>
+                </li>
+                <li>Bars are collected into a vector and sorted by timestamp</li>
+                <li>Optional partial data loading is performed if USE_PARTIAL_DATA is true</li>
+                <li>The loaded data is stored in the BacktestEngine's historicalData vector</li>
+            </ol>
+        </section>
+
+        <section class="container">
+            <h2>4. Strategy Setup</h2>
+            <p>
+                After data loading, a strategy is created and set:
+            </p>
+            <pre><code>// In main.cpp
+std::string stratType = config.getNested<std::string>("/Strategy/Type", "Random");
+std::unique_ptr<Strategy> strategy;
+
+if (stratType == "ML") {
+    strategy = std::make_unique<HMMStrategy>();
+} else if (stratType == "Benchmark") {
+    strategy = std::make_unique<BenchmarkStrategy>();
+} else {
+    strategy = std::make_unique<RandomStrategy>();
+}
+
+Utils::logMessage("Main: Creating " + strategy->getName() + " strategy.");
+engine->setStrategy(std::move(strategy));</code></pre>
+
+            <p>
+                Strategy setup involves:
+            </p>
+            <ol>
+                <li>Creating an instance of the appropriate strategy type based on configuration</li>
+                <li>Setting strategy ownership to the BacktestEngine via setStrategy()</li>
+                <li>BacktestEngine provides the strategy with references to:
+                    <ul>
+                        <li>The Broker instance: strategy->setBroker(broker.get())</li>
+                        <li>The historical data: strategy->setData(&historicalData, primaryDataName)</li>
+                        <li>The configuration: strategy->setConfig(&config)</li>
+                    </ul>
+                </li>
+                <li>Strategy's initialize() method is called to set up internal state</li>
+            </ol>
+        </section>
+
+        <section class="container">
+            <h2>5. Backtest Execution</h2>
+            <p>
+                The backtest is executed with:
+            </p>
+            <pre><code>// In main.cpp
+engine->run();</code></pre>
+
+            <p>
+                The BacktestEngine::run() method performs the main backtest loop:
+            </p>
+            <pre><code>// In BacktestEngine::run()
+// Call strategy's init method before starting
+strategy->init();
+
+// Loop through each bar in the historical data
+for (size_t i = 0; i < historicalData.size(); ++i) {
+    currentBarIndex = i;
+    const Bar& currentBar = historicalData[i];
+    
+    // Update current price
+    currentPrice = currentBar.columns[1]; // Assuming close price is at index 1
+    
+    // Process pending orders using current bar data
+    broker->processOrders(currentBar);
+    
+    // Call strategy's next method to process this bar
+    strategy->next(currentBar, i, currentPrice);
+}
+
+// Call strategy's stop method when done
+strategy->stop();</code></pre>
+
+            <p>
+                For each bar in the historical data:
+            </p>
+            <ol>
+                <li>Current price information is updated</li>
+                <li>The Broker processes any pending orders:
+                    <ol>
+                        <li>Orders are filled based on the current bar's price data</li>
+                        <li>Take profit and stop loss orders are checked</li>
+                        <li>Order statuses are updated</li>
+                        <li>The Strategy is notified of order status changes</li>
+                    </ol>
+                </li>
+                <li>The Strategy's next() method is called with the current bar:
+                    <ol>
+                        <li>Strategy analyzes the bar using its internal logic</li>
+                        <li>It may submit new orders to the Broker</li>
+                        <li>It updates internal indicators and state</li>
+                    </ol>
+                </li>
+            </ol>
+        </section>
+
+        <section class="container">
+            <h2>6. Strategy-Broker Interaction</h2>
+            <p>
+                The Strategy and Broker interact during the backtest loop:
+            </p>
+
+            <h3>Order Submission</h3>
+            <pre><code>// In a Strategy implementation
+Order buyOrder;
+buyOrder.type = OrderType::BUY;
+buyOrder.symbol = bar.symbol;
+buyOrder.requestedSize = 1.0;
+buyOrder.requestedPrice = bar.columns[1]; // Close price
+buyOrder.takeProfit = bar.columns[1] + takeProfitPips_;
+buyOrder.stopLoss = bar.columns[1] - stopLossPips_;
+
+// Submit to broker
+int orderId = broker->submitOrder(buyOrder);</code></pre>
+
+            <h3>Order Processing</h3>
+            <pre><code>// In Broker::processOrders
+// For each pending order
+for (auto& order : pendingOrders) {
+    // Check if the order can be executed
+    if (canExecuteOrder(order, currentBar)) {
+        // If it's an opening order
+        if (!hasPosition(order.symbol) || 
+            (hasPosition(order.symbol) && isOrderReducingPosition(order))) {
+            executeOpenOrder(order, currentBar);
+        }
+        // If it's a closing order targeting an existing position
+        else if (hasPosition(order.symbol)) {
+            auto& position = positions[order.symbol];
+            executeCloseOrder(order, position, currentBar);
+        }
+    }
+    else {
+        // Reject the order if it can't be executed
+        rejectOrder(order, OrderStatus::REJECTED, currentBar);
+    }
+    
+    // Notify the strategy of order status change
+    if (strategy) {
+        strategy->notifyOrder(order);
+    }
+}</code></pre>
+
+            <h3>Position Management</h3>
+            <p>
+                The Broker maintains and updates positions:
+            </p>
+            <ul>
+                <li>Opening positions when orders are filled</li>
+                <li>Updating positions when additional orders are filled</li>
+                <li>Closing positions when opposing orders are filled</li>
+                <li>Processing stop-loss and take-profit levels</li>
+                <li>Calculating profit/loss and updating cash balances</li>
+            </ul>
+        </section>
+
+        <section class="container">
+            <h2>7. Machine Learning Strategy Flow</h2>
+            <p>
+                For ML strategies like HMMStrategy, there's an additional flow for model interaction:
+            </p>
+            <ol>
+                <li>Loading ONNX models via OnnxModelInterface</li>
+                <li>Feature extraction from bar data</li>
+                <li>State detection using HMM model</li>
+                <li>Model inference to generate trading signals</li>
+                <li>Order creation based on model outputs</li>
+            </ol>
+
+            <pre><code>// In HMMStrategy::next
+// Extract features from historical data
+// ...
+
+// Detect regime using HMM model
+int regime = detectRegime(features);
+
+// Select appropriate model for current regime
+auto& model = regimeModels_[regime];
+
+// Run inference
+std::vector<float> prediction = model->Predict(inputData, inputShape);
+
+// Generate trading signal based on prediction
+double signal = prediction[0];
+
+// Create orders based on signal
+if (signal > entryThreshold_) {
+    // Create buy order
+    // ...
+} else if (signal < -entryThreshold_) {
+    // Create sell order
+    // ...
+}</code></pre>
+        </section>
+
+        <section class="container">
+            <h2>8. Metrics Calculation</h2>
+            <p>
+                After the backtest completes, performance metrics are calculated:
+            </p>
+            <pre><code>// At the end of BacktestEngine::run
+// Calculate final portfolio value
+double finalValue = broker->getValue(currentPrice);
+
+// Calculate ROI
+double roi = (finalValue - broker->getStartingCash()) / broker->getStartingCash() * 100.0;
+
+// Log results
+Utils::logMessage("Backtest completed.");
+Utils::logMessage("Starting balance: $" + std::to_string(broker->getStartingCash()));
+Utils::logMessage("Final balance: $" + std::to_string(finalValue));
+Utils::logMessage("ROI: " + std::to_string(roi) + "%");</code></pre>
+
+            <p>
+                More detailed metrics may include:
+            </p>
+            <ul>
+                <li>Sharpe ratio and sortino ratio</li>
+                <li>Maximum drawdown percentage and duration</li>
+                <li>Win/loss ratio</li>
+                <li>Average profit per trade</li>
+                <li>Total number of trades</li>
+            </ul>
+        </section>
+
+        <section class="container">
+            <h2>9. Python Integration Flow</h2>
+            <p>
+                When using CppBacktester from Python via pybind11, the flow is similar:
+            </p>
+            <pre><code># Python example
+import cppbacktester_py as cb
+
+# 1. Load configuration
+config = cb.Config()
+config.load_from_file("config.json")
+
+# 2. Create engine with config
+engine = cb.BacktestEngine(config)
+
+# 3. Load data
+engine.load_data()
+
+# 4. Create and set strategy
+strategy = cb.RandomStrategy()  # or HMMStrategy, BenchmarkStrategy, etc.
+engine.set_strategy(strategy)
+
+# 5. Run backtest
+engine.run()
+
+# 6. Get results
+# (Future functionality)</code></pre>
+            
+            <p>
+                The Python bindings expose the core C++ functionality, allowing:
+            </p>
+            <ul>
+                <li>Configuration management</li>
+                <li>Data loading</li>
+                <li>Strategy selection and configuration</li>
+                <li>Backtest execution</li>
+                <li>Results analysis (in development)</li>
+            </ul>
+            <p>
+                Note: Some advanced features like custom Python strategies, direct DataFrame integration, 
+                and visualization tools are under development.
+            </p>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 CppBacktester Project. All rights reserved.</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Installation Guide - CppBacktester Documentation</title>
+    <link rel="stylesheet" href="styles1.css">
+</head>
+<body>
+    <header>
+        <h1>CppBacktester</h1>
+        <p>Installation Guide</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="installation.html" class="active">Installation</a></li>
+            <li><a href="usage.html">Usage Guide</a></li>
+            <li><a href="api.html">API Reference</a></li>
+            <li><a href="examples.html">Examples</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="container">
+            <h2>Prerequisites</h2>
+            <p>Before installing CppBacktester, ensure you have the following prerequisites:</p>
+            <ul>
+                <li>CMake (version 3.12 or higher)</li>
+                <li>C++ compiler with C++17 support</li>
+                <li>Python 3.x with development headers (if building the Python module)</li>
+                <li>NumPy (if building the Python module)</li>
+                <li>vcpkg (for managing dependencies)</li>
+            </ul>
+        </section>
+
+        <section class="container">
+            <h2>Build Options</h2>
+            <p>
+                CppBacktester supports two main build targets:
+            </p>
+            <ul>
+                <li><strong>C++ executable</strong> (<code>BUILD_EXECUTABLE=ON</code>)</li>
+                <li><strong>Python module</strong> (<code>BUILD_PYTHON_MODULE=ON</code>)</li>
+            </ul>
+            <p>
+                Both targets are enabled by default. You can disable either target by setting the corresponding option to <code>OFF</code> during CMake configuration.
+            </p>
+        </section>
+
+        <section class="container">
+            <h2>Building with CMake</h2>
+            <p>Follow these steps to build CppBacktester using CMake:</p>
+            
+            <h3>Step 1: Clone the Repository</h3>
+            <pre><code>git clone https://github.com/your-username/CppBacktester.git
+cd CppBacktester</code></pre>
+            
+            <h3>Step 2: Create and Enter Build Directory</h3>
+            <pre><code>mkdir build
+cd build</code></pre>
+            
+            <h3>Step 3: Configure with CMake</h3>
+            <pre><code>cmake .. -G "Visual Studio 17 2022" -A x64</code></pre>
+            
+            <p>To customize the build, you can pass additional options:</p>
+            <pre><code>cmake .. -G "Visual Studio 17 2022" -A x64 -DBUILD_EXECUTABLE=ON -DBUILD_PYTHON_MODULE=ON</code></pre>
+            
+            <h3>Step 4: Build the Project</h3>
+            <pre><code>cmake --build . --config Release</code></pre>
+            
+            <div class="note">
+                <strong>Note:</strong> You can also build in Debug mode by replacing <code>Release</code> with <code>Debug</code>.
+            </div>
+        </section>
+
+        <section class="container">
+            <h2>Using the Helper Script</h2>
+            <p>For convenience, you can use the provided batch script to clean and rebuild the project:</p>
+            <pre><code># On Windows
+build.bat</code></pre>
+            
+            <p>This script will:</p>
+            <ol>
+                <li>Check for CMake installation</li>
+                <li>Clean and create the build directory</li>
+                <li>Run CMake configuration</li>
+                <li>Build the project</li>
+            </ol>
+        </section>
+
+        <section class="container">
+            <h2>Output Directory Structure</h2>
+            <p>After building, the output files will be organized as follows:</p>
+            <pre><code>build/
+├── output/                                          # build output
+│   ├── bin/               
+│   │    ├── backtest_executable.exe                 # C++ executable
+│   │    └── .dlls                                   # DLLs for the executable
+│   └── lib/              
+│        ├── cppbacktester_py.cp312-win_amd64.pyd    # Python extension module
+│        └──
+└── ...                                              # Other build files</code></pre>
+        </section>
+
+        <section class="container">
+            <h2>Python Dependencies</h2>
+            <p>CppBacktester requires several Python packages when using the Python module or running the auxiliary scripts. You can install all required dependencies using pip:</p>
+            
+            <h3>Step 1: Navigate to the Project Directory</h3>
+            <pre><code>cd path/to/CppBacktester</code></pre>
+            
+            <h3>Step 2: Install Requirements</h3>
+            <pre><code>pip install -r requirements.txt</code></pre>
+            
+            <p>This will install all the necessary Python packages listed in the requirements.txt file, including:</p>
+            <ul>
+                <li>NumPy - For numerical computations</li>
+                <li>Pandas - For data manipulation</li>
+                <li>Additional packages required by the HMM and ML strategies</li>
+            </ul>
+            
+            <div class="note">
+                <strong>Note:</strong> It's recommended to use a virtual environment to avoid conflicts with other Python packages.
+            </div>
+        </section>
+
+        <section class="container">
+            <h2>Troubleshooting</h2>
+            <h3>CMake Not Found</h3>
+            <p>If you encounter a "CMake not found" error, ensure that CMake is installed and added to your system PATH.</p>
+            
+            <h3>Python Development Headers Not Found</h3>
+            <p>If CMake cannot find Python development headers, make sure you have installed the Python development package:</p>
+            <ul>
+                <li>On Windows: Install Python with the "Install development headers" option</li>
+                <li>On Linux: Install the python3-dev package</li>
+                <li>On macOS: Install Python via Homebrew which includes development headers</li>
+            </ul>
+            
+            <h3>Build Errors</h3>
+            <p>If you encounter build errors, check the following:</p>
+            <ul>
+                <li>Ensure your compiler supports C++17</li>
+                <li>Check that all dependencies are properly installed</li>
+                <li>Verify that the build configuration matches your system architecture</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 CppBacktester Project. All rights reserved.</p>
+    </footer>
+</body>
+</html>
