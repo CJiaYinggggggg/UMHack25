@@ -4,12 +4,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Our Trading Strategy</title>
+  <title>Project Overview</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
-    <h1>Our Trading Strategy</h1>
+    <h1>Overview</h1>
     <nav><a href="index.html">&#8592; Home</a></nav>
   </header>
   <section>
@@ -29,20 +29,15 @@
       </li>
     </ol>
   </section>
+   <h2>Methodology</h2>
     <ol>
-      <li><strong>Regime Filter:</strong> Use HMM to identify Bull/Bear periods.</li>
-      <li><strong>Signal Generator:</strong> Train LSTM on rolling windows of returns during Bull states.</li>
-      <li><strong>Execution:</strong> Only take long trades if HMM indicates Bull; otherwise stay flat or hedge.</li>
+      <li><strong>Regime Detection with HMM: </strong> Use HMM to identify Bull/Bear periods.</li>
+      <li><strong>Model Training per Regime: </strong> Once the regimes are identified, we train separate machine learning models — such as LSTM, XGBoost, and others — for each regime.</li>
+      <li><strong>Backtesting Strategies: </strong>Using a backtesting framework, we simulate trades based on the predictions from each model. We evaluate the strategies using financial metrics.</li>
       <li><strong>Risk Management:</strong> Fixed stop-loss at 2% and take-profit at 5% per trade.</li>
     </ol>
   </section>
-  <section>
-    <h2>Walkthrough</h2>
-    <p>1. Load price data and fit HMM on returns.<br>
-2. Label each time-step with a regime.<br>
-3. Train LSTM only on data labeled Bull.<br>
-4. During live trading, predict next-step price with LSTM; if predicted return &gt; threshold, go long.</p>
-  </section>
+
   <footer>
     <p>&copy; 2025 QuantDoc</p>
   </footer>

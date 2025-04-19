@@ -1,18 +1,19 @@
 /* Enhanced style.css with blue and purple theme */
 :root {
-  --primary-blue: #3a6ea5;
-  --dark-blue: #004e92;
+  --primary-blue: #0b1f35;
+  --dark-blue: #00294d;
   --light-blue: #e0f2ff;
-  --primary-purple: #6a3093;
-  --dark-purple: #5b2a86;
-  --light-purple: #f3e7ff;
+  --primary-purple: #27083c;
+  --dark-purple: #000000;
+  --light-purple: #efdeff;
   --accent: #9d4edd;
   --text-dark: #252733;
-  --text-light: #f8f9fa;
-  --background: #f5f7fa;
+  --text-light: #fbfdff;
+  --background: #bbd6ff;
   --card-bg: #ffffff;
 }
-#app {               /* or whatever your root wrapper is */
+
+#app {             
   display: flex;
   flex-direction: column;
   min-height: 100%;
@@ -73,6 +74,9 @@ nav.home-nav a:hover {
   margin: 0 auto;
 }
 
+.maintitle{
+  text-align: center;
+}
 section {
   background: var(--card-bg);
   margin-bottom: 1.5rem;
@@ -116,8 +120,6 @@ footer {
   z-index: 100;
 }
 
-
-
 nav a {
   color: var(--accent);
   text-decoration: none;
@@ -126,7 +128,6 @@ nav a {
 }
 
 nav a:hover {
-  color: var(--primary-purple);
   text-decoration: underline;
 }
 
