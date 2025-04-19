@@ -15,13 +15,70 @@
   
   <section>
     <h2>Hidden Markov Model (HMM)</h2>
-    <p>An HMM uses latent (hidden) states to model market regimes. It consists of:</p>
+<p>An HMM uses latent (hidden) states to model market regimes. It consists of:</p>
+<ul>
+  <li><strong>States:</strong> e.g., Bull, Bear.</li>
+  <li><strong>Transition Matrix:</strong> Probabilities of switching between states.</li>
+  <li><strong>Emission Probabilities:</strong> Likelihood of observations given a state.</li>
+</ul>
+
+<h3>Data Collection and Preparation</h3>
+<p>You're using a combined dataset that includes:</p>
+<ul>
+  <li><strong>On-chain cryptocurrency data:</strong> blockchain metrics like transactions, volume, etc.</li>
+  <li><strong>Macroeconomic indicators:</strong> inflation rates, interest rates, and other economic factors.</li>
+</ul>
+
+<h3>Feature Engineering</h3>
+<p>Several technical indicators and metrics were created to analyze cryptocurrency price movements:</p>
+<ul>
+  <li><strong>Returns and Log Returns:</strong> Measure price changes between periods.</li>
+  <li><strong>Volatility:</strong> Measures price fluctuation/dispersion.</li>
+  <li><strong>Moving Averages (MA10):</strong> 10-period moving average to smooth price trends.</li>
+  <li><strong>Rate of Change (ROC_5, ROC_10, ROC_20):</strong> Measure price momentum over 5, 10, and 20 periods.</li>
+  <li><strong>Volume Change:</strong> Changes in trading volume.</li>
+  <li><strong>Fractional Price Relationships:</strong>
     <ul>
-      <li><strong>States:</strong> e.g., Bull, Bear.</li>
-      <li><strong>Transition Matrix:</strong> Probabilities of switching between states.</li>
-      <li><strong>Emission Probabilities:</strong> Likelihood of observations given a state.</li>
+      <li>Frac_Open_Close: Relationship between opening and closing prices</li>
+      <li>Frac_Open_High: Relationship between opening and highest prices</li>
+      <li>Frac_Open_Low: Relationship between opening and lowest prices</li>
+      <li>Frac_High_Low: Range of price movement (volatility indicator)</li>
     </ul>
-    <p>Viterbi algorithm finds the most probable state sequence given observed returns.</p>
+  </li>
+  <li><strong>ATR_14:</strong> Average True Range over 14 periods (volatility indicator).</li>
+  <li><strong>RSI_14:</strong> Relative Strength Index over 14 periods (momentum indicator).</li>
+</ul>
+
+<h3>Feature Selection</h3>
+<p>Using correlation analysis, a smaller subset of the most informative, low‑collinearity features was selected:</p>
+<ul>
+  <li><strong>Frac_High_Low</strong> (price volatility/range)</li>
+  <li><strong>ATR_14</strong> (volatility)</li>
+  <li><strong>Returns</strong> (price changes)</li>
+  <li><strong>macro_index_kernel</strong> (macroeconomic factor composite)</li>
+</ul>
+
+<h3>Model Training</h3>
+<p>A systematic approach was used to train the HMM:</p>
+<ul>
+  <li>Split data into training, testing, and validation sets.</li>
+  <li>Use Grid Search to find optimal hyperparameters.</li>
+</ul>
+
+<h3>Regime Identification</h3>
+<p>Regime detection is employed to identify different market states, such as bull, bear, or sideways markets. This allows:</p>
+<ul>
+  <li>Recognition that financial markets behave differently under varying conditions.</li>
+  <li>Training of regime‑specific strategies or models for improved performance.</li>
+</ul>
+
+<h3>Datetime Segmentation</h3>
+<p>Once regimes are identified, data is segmented by the corresponding time periods to:</p>
+<ul>
+  <li>Analyze behavior differences across regimes.</li>
+  <li>Potentially train and backtest strategies that adapt to the current market regime.</li>
+</ul>
+
   </section>
   <section>
     <h2>XGBoost</h2>
