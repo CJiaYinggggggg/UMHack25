@@ -61,7 +61,7 @@
   </code> </pre>
 
   <h3>Step 4</h3>
-  <p>Feature Scaling</p>
+  <p><strong>Feature Scaling</strong></p>
   <pre><code>
   def prepare_data(self, df, top_features):
       X, y = self.create_window_sequences(df, top_features)
@@ -70,15 +70,49 @@
   </code></pre>
 
   <h3>Step 5</h3>
-  <p>Train-Test Split</p>
+  <p><strong>Train-Test Split</strong></p>
 
   <h3>Step 6</h3>
-  <p>Model Training</p>
+  <p><strong>Model Training</strong></p>
 
   <h3>Step 7</h3>
-  <p>4. Time-Series Aware Cross-Validation + Optimization (optimize_model)</p>
+  <p><strong>Time-Series Aware Cross-Validation + Optimization (optimize_model)</strong></p>
   <pre><code>
+  def optimize_model(self, X_train, y_train, model_type='xgb', n_iter=20, cv=5):
+      def time_series_split(X, n_splits):
+          n_samples = len(X)
+          k_fold_size = n_samples // n_splits
+          indices = np.arange(n_samples)
+          for i in range(n_splits):
+              test_start = k_fold_size * i
+              test_end = k_fold_size * (i + 1) if i < n_splits - 1 else n_samples
+              train_indices = indices[:test_start]
+              test_indices = indices[test_start:test_end]
+              yield train_indices, test_indices
 
+      param_grid = self.param_distributions[model_type]
+      base_model = xgb.XGBRegressor(objective='reg:squarederror', random_state=42, tree_method='hist')
+      ts_cv = list(time_series_split(X_train, n_splits=cv))
+
+      random_search = RandomizedSearchCV(
+          estimator=base_model,
+          param_distributions=param_grid,
+          n_iter=n_iter,
+          cv=ts_cv,
+          scoring='neg_mean_squared_error',
+          random_state=42,
+          n_jobs=-1,
+          verbose=2
+      )
+
+      random_search.fit(X_train, y_train)
+      self.best_params = random_search.best_params_
+      self.best_score = random_search.best_score_
+      self.models[model_type] = random_search.best_estimator_
+      print("\nBest parameters found:")
+      print(self.best_params)
+      print(f"Best score: {self.best_score:.4f}")
+      return self.models[model_type]
   </code></pre>
 
 
